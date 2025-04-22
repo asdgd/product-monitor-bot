@@ -3,7 +3,6 @@ import os
 import time
 import sqlite3
 import requests
-import openai
 from bs4 import BeautifulSoup
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
@@ -11,7 +10,6 @@ import asyncio
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "PUT_YOUR_TELEGRAM_BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "PUT_YOUR_OPENAI_API_KEY")
-openai.api_key = OPENAI_API_KEY
 
 conn = sqlite3.connect("products.db", check_same_thread=False)
 c = conn.cursor()
@@ -83,18 +81,6 @@ def check_product(url):
     except:
         return None, None
 
-async def ai_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    prompt = update.message.text
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        reply = response.choices[0].message.content.strip()
-    except Exception:
-        reply = "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي."
-    await update.message.reply_text(reply)
-
 async def monitor(app):
     while True:
         rows = c.execute("SELECT rowid, user_id, url, interval, last_price, last_checked FROM watchlist").fetchall()
@@ -122,7 +108,6 @@ async def monitor(app):
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("add", add))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, ai_reply))
 
 loop = asyncio.get_event_loop()
 loop.create_task(monitor(app))
