@@ -22,7 +22,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 رابط أرسل رابط المنتج الآن.""")
 
-await update.message.reply_text("أرسل رابط المنتج اللي تبي أشيك عليه.")
+رابط أرسل رابط المنتج اللي تبي أشيك عليه.")
 
 def check_product(url):
     try:
@@ -73,7 +73,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             }
             user_state[user_id] = "awaiting_interval"
 
-            await update.message.reply_text("رابط تم استلام الرابط!
+            await update.message.reply_text("تم استلام الرابط بنجاح!")
 ⏳ جاري التحقق...")
             await asyncio.sleep(1)
 
