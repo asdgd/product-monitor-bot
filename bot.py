@@ -18,9 +18,11 @@ user_data = {}  # user_id: {url, interval, last_status, last_price}
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_state[user_id] = "awaiting_url"
-    await update.message.reply_text("""أهلاً بك في بوت مراقبة المنتجات!
+    await update.message.reply_text("""أهلاً أهلاً بك في بوت مراقبة المنتجات!
 
-أرسل رابط المنتج اللي تبي أشيك عليه.""")
+رابط أرسل رابط المنتج الآن.""")
+
+رابط أرسل رابط المنتج اللي تبي أشيك عليه.")
 
 def check_product(url):
     try:
@@ -71,16 +73,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             }
             user_state[user_id] = "awaiting_interval"
 
-            await update.message.reply_text("تم استلام الرابط بنجاح ✅\n⏳ جاري التحقق من حالة المنتج...")
+            await update.message.reply_text("تم استلام الرابط بنجاح!")
+⏳ جاري التحقق...")
             await asyncio.sleep(1)
 
             if status == "متوفر":
-                await update.message.reply_text(f"تم *المنتج متوفر!*
+                await update.message.reply_text(f"""✅ *المنتج متوفر!*
+
+💵 *السعر:* {price or 'غير معروف'}
+🌐 [رابط المنتج]({message})""", parse_mode="Markdown")
 
 💵 *السعر:* {price or 'غير معروف'}
 🌐 [رابط المنتج]({message})", parse_mode="Markdown")
             elif status == "غير متوفر":
-                await update.message.reply_text(f"غير متوفر *المنتج غير متوفر حالياً!*
+                await update.message.reply_text(f"""❌ *المنتج غير متوفر حالياً!*
+🌐 [رابط المنتج]({message})""", parse_mode="Markdown")
 🌐 [رابط المنتج]({message})", parse_mode="Markdown")
             else:
                 await update.message.reply_text("تنبيه لم أتمكن من تحديد حالة المنتج بدقة.")
@@ -102,8 +109,8 @@ async def handle_interval_selection(update: Update, context: ContextTypes.DEFAUL
         user_data[user_id]["interval"] = interval
         user_state[user_id] = "monitoring"
 
-        await query.edit_message_text(f"تم تم تحديد المدة: كل {interval} دقيقة
-🔁 سأقوم بمتابعة المنتج بشكل مستمر.")
+        await query.edit_message_text(f"""✅ تم تحديد المدة: كل {interval} دقيقة
+🔁 سأقوم بمتابعة المنتج بشكل مستمر.""")
     else:
         await query.edit_message_text("تنبيه حدث خطأ، يرجى البدء من جديد بـ /start")
 
@@ -119,24 +126,21 @@ async def monitor_products(app):
 
                 if status != data["last_status"]:
                     notify = True
-                    msg += f"تحديث *تحديث في حالة المنتج!*
+                    msg += f"""🔄 *تحديث في حالة المنتج!*
 من: {data['last_status']}
-إلى: {status}"
+إلى: {status}"""
                     data["last_status"] = status
 
                 if price and price != data["last_price"]:
                     notify = True
-                    msg += f"
-السعر *السعر تغيّر!*
+                    msg += f"""💰 *السعر تغيّر!*
 من: {data['last_price'] or 'غير معروف'}
-إلى: {price}"
+إلى: {price}"""
                     data["last_price"] = price
 
                 if notify:
                     try:
-                        await app.bot.send_message(chat_id=user_id, text=msg + f"
-
-🌐 [رابط المنتج]({data['url']})", parse_mode="Markdown")
+                        await app.bot.send_message(chat_id=user_id, text=msg + f"""\n🌐 [رابط المنتج]({data['url']})""", parse_mode="Markdown")
                     except:
                         pass
 
