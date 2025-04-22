@@ -1,3 +1,4 @@
+
 import os
 import time
 import requests
@@ -12,18 +13,14 @@ AVAILABLE = ["متوفر", "available", "in stock"]
 UNAVAILABLE = ["غير متوفر", "unavailable", "out of stock", "نفدت", "مباع"]
 
 user_state = {}
-user_data = {}
+user_data = {}  # user_id: {url, interval, last_status, last_price}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_state[user_id] = "awaiting_url"
-    await update.message.reply_text(
-        """👋 أهلاً بك في بوت مراقبة المنتجات!
+    await update.message.reply_text("👋 أهلاً بك في بوت مراقبة المنتجات!
 
-🔗 أرسل رابط المنتج الآن،
-وسأتحقق من توفره وسعره، ثم أتابعه لك باستمرار.
-"""
-    )
+🔗 أرسل رابط المنتج اللي تبي أشيك عليه.")
 
 def check_product(url):
     try:
@@ -57,38 +54,43 @@ async def ask_interval(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("⏱️ كل ساعة", callback_data="60")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("كل كم دقيقة تبي أشيك؟", reply_markup=reply_markup)
+    await update.message.reply_text("كم مرة تبيني أشيك على توفر المنتج؟", reply_markup=reply_markup)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    msg = update.message.text.strip()
+    message = update.message.text.strip()
 
     if user_state.get(user_id) == "awaiting_url":
-        if msg.startswith("http"):
-            status, price = check_product(msg)
+        if message.startswith("http"):
+            status, price = check_product(message)
             user_data[user_id] = {
-                "url": msg,
+                "url": message,
                 "interval": 0,
                 "last_status": status,
                 "last_price": price
             }
             user_state[user_id] = "awaiting_interval"
 
+            await update.message.reply_text("🔗 تم استلام الرابط!
+⏳ جاري التحقق...")
+            await asyncio.sleep(1)
+
             if status == "متوفر":
-                await update.message.reply_text(
-                    f"✅ *المنتج متوفر!*\n💰 السعر: {price or 'غير معروف'}",
-                    parse_mode="Markdown"
-                )
+                await update.message.reply_text(f"✅ *المنتج متوفر!*
+
+💵 *السعر:* {price or 'غير معروف'}
+🌐 [رابط المنتج]({message})", parse_mode="Markdown")
             elif status == "غير متوفر":
-                await update.message.reply_text("❌ المنتج غير متوفر حالياً.")
+                await update.message.reply_text(f"❌ *المنتج غير متوفر حالياً!*
+🌐 [رابط المنتج]({message})", parse_mode="Markdown")
             else:
-                await update.message.reply_text("⚠️ ما قدرت أتحقق من حالة المنتج.")
+                await update.message.reply_text("⚠️ لم أتمكن من تحديد حالة المنتج بدقة.")
 
             await ask_interval(update, context)
         else:
             await update.message.reply_text("📎 أرسل رابط صحيح يبدأ بـ http")
     else:
-        await update.message.reply_text("💡 ابدأ بـ /start")
+        await update.message.reply_text("💡 ابدأ باستخدام الأمر /start")
 
 async def handle_interval_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -101,12 +103,15 @@ async def handle_interval_selection(update: Update, context: ContextTypes.DEFAUL
         user_data[user_id]["interval"] = interval
         user_state[user_id] = "monitoring"
 
-        await query.edit_message_text(f"✅ تمام! راح أشيك كل {interval} دقيقة 👀")
+        await query.edit_message_text(f"✅ تم تحديد المدة: كل {interval} دقيقة
+🔁 سأقوم بمتابعة المنتج بشكل مستمر.")
     else:
-        await query.edit_message_text("⚠️ حصل خطأ، ابدأ من جديد بـ /start")
+        await query.edit_message_text("⚠️ حدث خطأ، يرجى البدء من جديد بـ /start")
 
+# المراقبة المستمرة
 async def monitor_products(app):
     while True:
+        now = time.time()
         for user_id, data in user_data.items():
             if user_state.get(user_id) == "monitoring":
                 status, price = check_product(data["url"])
@@ -115,30 +120,36 @@ async def monitor_products(app):
 
                 if status != data["last_status"]:
                     notify = True
-                    msg += f"🔔 *تحديث حالة المنتج!*\nمن: {data['last_status']} ➡️ إلى: {status}"
+                    msg += f"🔄 *تحديث في حالة المنتج!*
+من: {data['last_status']}
+إلى: {status}"
                     data["last_status"] = status
 
                 if price and price != data["last_price"]:
                     notify = True
-                    msg += f"\n💰 *تغير السعر!*\nمن: {data['last_price'] or 'غير معروف'} ➡️ إلى: {price}"
+                    msg += f"
+💰 *السعر تغيّر!*
+من: {data['last_price'] or 'غير معروف'}
+إلى: {price}"
                     data["last_price"] = price
 
                 if notify:
                     try:
-                        await app.bot.send_message(chat_id=user_id, text=msg, parse_mode="Markdown")
+                        await app.bot.send_message(chat_id=user_id, text=msg + f"
+
+🌐 [رابط المنتج]({data['url']})", parse_mode="Markdown")
                     except:
                         pass
 
         await asyncio.sleep(60)
 
+# التشغيل
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 app.add_handler(CallbackQueryHandler(handle_interval_selection))
 
-async def main():
-    asyncio.create_task(monitor_products(app))
-    await app.run_polling()
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    loop = asyncio.get_event_loop()
+    loop.create_task(monitor_products(app))
+    app.run_polling()
