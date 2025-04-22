@@ -18,11 +18,11 @@ user_data = {}  # user_id: {url, interval, last_status, last_price}
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_state[user_id] = "awaiting_url"
-    await update.message.reply_text("""👋 أهلاً بك في بوت مراقبة المنتجات!
+    await update.message.reply_text("""أهلاً أهلاً بك في بوت مراقبة المنتجات!
 
-🔗 أرسل رابط المنتج الآن.""")
+رابط أرسل رابط المنتج الآن.""")
 
-🔗 أرسل رابط المنتج اللي تبي أشيك عليه.")
+رابط أرسل رابط المنتج اللي تبي أشيك عليه.")
 
 def check_product(url):
     try:
@@ -50,10 +50,10 @@ def check_product(url):
 
 async def ask_interval(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("⏱️ كل 5 دقائق", callback_data="5")],
-        [InlineKeyboardButton("⏱️ كل 15 دقيقة", callback_data="15")],
-        [InlineKeyboardButton("⏱️ كل 30 دقيقة", callback_data="30")],
-        [InlineKeyboardButton("⏱️ كل ساعة", callback_data="60")]
+        [InlineKeyboardButton("مدة كل 5 دقائق", callback_data="5")],
+        [InlineKeyboardButton("مدة كل 15 دقيقة", callback_data="15")],
+        [InlineKeyboardButton("مدة كل 30 دقيقة", callback_data="30")],
+        [InlineKeyboardButton("مدة كل ساعة", callback_data="60")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("كم مرة تبيني أشيك على توفر المنتج؟", reply_markup=reply_markup)
@@ -73,26 +73,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             }
             user_state[user_id] = "awaiting_interval"
 
-            await update.message.reply_text("🔗 تم استلام الرابط!
+            await update.message.reply_text("رابط تم استلام الرابط!
 ⏳ جاري التحقق...")
             await asyncio.sleep(1)
 
             if status == "متوفر":
-                await update.message.reply_text(f"✅ *المنتج متوفر!*
+                await update.message.reply_text(f"تم *المنتج متوفر!*
 
 💵 *السعر:* {price or 'غير معروف'}
 🌐 [رابط المنتج]({message})", parse_mode="Markdown")
             elif status == "غير متوفر":
-                await update.message.reply_text(f"❌ *المنتج غير متوفر حالياً!*
+                await update.message.reply_text(f"غير متوفر *المنتج غير متوفر حالياً!*
 🌐 [رابط المنتج]({message})", parse_mode="Markdown")
             else:
-                await update.message.reply_text("⚠️ لم أتمكن من تحديد حالة المنتج بدقة.")
+                await update.message.reply_text("تنبيه لم أتمكن من تحديد حالة المنتج بدقة.")
 
             await ask_interval(update, context)
         else:
             await update.message.reply_text("📎 أرسل رابط صحيح يبدأ بـ http")
     else:
-        await update.message.reply_text("💡 ابدأ باستخدام الأمر /start")
+        await update.message.reply_text("معلومة ابدأ باستخدام الأمر /start")
 
 async def handle_interval_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -105,10 +105,10 @@ async def handle_interval_selection(update: Update, context: ContextTypes.DEFAUL
         user_data[user_id]["interval"] = interval
         user_state[user_id] = "monitoring"
 
-        await query.edit_message_text(f"✅ تم تحديد المدة: كل {interval} دقيقة
+        await query.edit_message_text(f"تم تم تحديد المدة: كل {interval} دقيقة
 🔁 سأقوم بمتابعة المنتج بشكل مستمر.")
     else:
-        await query.edit_message_text("⚠️ حدث خطأ، يرجى البدء من جديد بـ /start")
+        await query.edit_message_text("تنبيه حدث خطأ، يرجى البدء من جديد بـ /start")
 
 # المراقبة المستمرة
 async def monitor_products(app):
@@ -122,7 +122,7 @@ async def monitor_products(app):
 
                 if status != data["last_status"]:
                     notify = True
-                    msg += f"🔄 *تحديث في حالة المنتج!*
+                    msg += f"تحديث *تحديث في حالة المنتج!*
 من: {data['last_status']}
 إلى: {status}"
                     data["last_status"] = status
@@ -130,7 +130,7 @@ async def monitor_products(app):
                 if price and price != data["last_price"]:
                     notify = True
                     msg += f"
-💰 *السعر تغيّر!*
+السعر *السعر تغيّر!*
 من: {data['last_price'] or 'غير معروف'}
 إلى: {price}"
                     data["last_price"] = price
