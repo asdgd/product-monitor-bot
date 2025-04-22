@@ -22,8 +22,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 رابط أرسل رابط المنتج الآن.""")
 
-رابط أرسل رابط المنتج اللي تبي أشيك عليه.")
-
 def check_product(url):
     try:
         r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
