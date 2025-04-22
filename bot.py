@@ -75,25 +75,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await asyncio.sleep(1)
 
             if status == "متوفر":
-                await update.message.reply_text(f"""  *المنتج متوفر!*
-
-  *السعر:* {price or 'غير معروف'}
-🌐 [رابط المنتج]({message})""", parse_mode="Markdown")
-
-  *السعر:* {price or 'غير معروف'}
-🌐 [رابط المنتج]({message})", parse_mode="Markdown")
+                await update.message.reply_text(
+                    f"المنتج متوفر!\n\nالسعر: {price or 'غير معروف'}\nرابط المنتج: {message}",
+                    parse_mode="Markdown"
+                )
             elif status == "غير متوفر":
-                await update.message.reply_text(f"""❌ *المنتج غير متوفر حالياً!*
-🌐 [رابط المنتج]({message})""", parse_mode="Markdown")
-🌐 [رابط المنتج]({message})", parse_mode="Markdown")
+                await update.message.reply_text(
+                    f"المنتج غير متوفر حالياً!\nرابط المنتج: {message}",
+                    parse_mode="Markdown"
+                )
             else:
-                await update.message.reply_text("تنبيه لم أتمكن من تحديد حالة المنتج بدقة.")
+                await update.message.reply_text("لم أتمكن من تحديد حالة المنتج بدقة.")
 
             await ask_interval(update, context)
         else:
-            await update.message.reply_text("📎 أرسل رابط صحيح يبدأ بـ http")
+            await update.message.reply_text("أرسل رابط صحيح يبدأ بـ http")
     else:
-        await update.message.reply_text("معلومة ابدأ باستخدام الأمر /start")
+        await update.message.reply_text("ابدأ باستخدام الأمر /start")
 
 async def handle_interval_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
