@@ -7,11 +7,9 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Con
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "PUT_YOUR_BOT_TOKEN_HERE")
 
-# كلمات التوفر
 AVAILABLE = ["متوفر", "available", "in stock"]
 UNAVAILABLE = ["غير متوفر", "unavailable", "out of stock", "نفدت", "مباع"]
 
-# المستخدمين في انتظار الرابط
 awaiting_links = {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -51,12 +49,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if message.startswith("http"):
             status, price = check_product(message)
             if status == "متوفر":
-                await update.message.reply_text(f"✅ المنتج متوفر!
-السعر: {price or 'غير معروف'}")
+                await update.message.reply_text(f"""✅ المنتج متوفر!
+السعر: {price or "غير معروف"}""")
             elif status == "غير متوفر":
                 await update.message.reply_text(f"❌ المنتج غير متوفر حالياً.
 راح أبحث لك عن بدائل...")
-                # Placeholder للبحث لاحقاً
             elif status == "غير واضح":
                 await update.message.reply_text("ما قدرت أحدد إذا المنتج متوفر أو لا.")
             else:
