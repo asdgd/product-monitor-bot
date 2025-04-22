@@ -22,7 +22,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 رابط أرسل رابط المنتج الآن.""")
 
-رابط أرسل رابط المنتج اللي تبي أشيك عليه.")
+await update.message.reply_text("أرسل رابط المنتج اللي تبي أشيك عليه.")
 
 def check_product(url):
     try:
