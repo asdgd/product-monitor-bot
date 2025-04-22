@@ -71,7 +71,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             }
             user_state[user_id] = "awaiting_interval"
 
-            await update.message.reply_text("رابط تم استلام الرابط!⏳ جاري التحقق...")
+            await update.message.reply_text("تم استلام الرابط بنجاح ✅\n⏳ جاري التحقق من حالة المنتج...")
             await asyncio.sleep(1)
 
             if status == "متوفر":
