@@ -49,8 +49,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) < 2:
-        await update.message.reply_text("الصيغة الصحيحة:
-/add [الرابط] [الدقائق]")
+        await update.message.reply_text("الصيغة الصحيحة: /add [الرابط] [الدقائق]")
         return
     url = context.args[0]
     try:
