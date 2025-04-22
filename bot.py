@@ -3,7 +3,6 @@ import os
 import time
 import sqlite3
 import requests
-import threading
 import openai
 from bs4 import BeautifulSoup
 from telegram import Update
@@ -14,13 +13,11 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "PUT_YOUR_TELEGRAM_BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "PUT_YOUR_OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
 
-# إعداد قاعدة البيانات
 conn = sqlite3.connect("products.db", check_same_thread=False)
 c = conn.cursor()
 c.execute("CREATE TABLE IF NOT EXISTS watchlist (user_id TEXT, url TEXT, interval INTEGER, last_price TEXT, last_checked REAL)")
 conn.commit()
 
-# كلمات التوفر وعدم التوفر
 AVAILABLE = ["متوفر", "available", "in stock"]
 UNAVAILABLE = ["غير متوفر", "unavailable", "out of stock", "نفدت", "مباع"]
 
@@ -37,9 +34,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 **طريقة الاستخدام:**
 أرسل:
-`/add [الرابط] [الدقائق]`
+/add [الرابط] [الدقائق]
 مثال:
-`/add https://example.com 10`
+/add https://example.com 10
 
 وجرب تكلمني بأي رسالة عادية، وشوف كيف أجاوبك!
 
@@ -94,7 +91,7 @@ async def ai_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
             messages=[{"role": "user", "content": prompt}]
         )
         reply = response.choices[0].message.content.strip()
-    except Exception as e:
+    except Exception:
         reply = "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي."
     await update.message.reply_text(reply)
 
@@ -106,18 +103,13 @@ async def monitor(app):
             rowid, user_id, url, interval, last_price, last_checked = row
             if now - last_checked >= interval * 60:
                 available, price = check_product(url)
-                msg = None
+                msg = ""
                 if available is True:
-                    msg = f"✅ المنتج متوفر الآن!
-{url}"
+                    msg += f"✅ المنتج متوفر الآن!\n{url}"
                 elif available is False:
-                    msg = f"❌ المنتج غير متوفر حالياً.
-{url}"
+                    msg += f"❌ المنتج غير متوفر حالياً.\n{url}"
                 if price and price != last_price:
-                    msg = (msg or '') + f"
-💰 السعر تغير:
-من: {last_price or 'غير معروف'}
-إلى: {price}"
+                    msg += f"\n💰 السعر تغير:\nمن: {last_price or 'غير معروف'}\nإلى: {price}"
                 c.execute("UPDATE watchlist SET last_checked = ?, last_price = ? WHERE rowid = ?", (now, price, rowid))
                 conn.commit()
                 if msg:
