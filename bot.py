@@ -1,3 +1,4 @@
+
 import os
 import time
 import sqlite3
@@ -8,22 +9,18 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 import asyncio
 
-# إعداد المتغيرات
 BOT_TOKEN = os.getenv("BOT_TOKEN", "PUT_YOUR_TELEGRAM_BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "PUT_YOUR_OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
 
-# إعداد قاعدة البيانات باستخدام SQLite
 conn = sqlite3.connect("products.db", check_same_thread=False)
 c = conn.cursor()
 c.execute("CREATE TABLE IF NOT EXISTS watchlist (user_id TEXT, url TEXT, interval INTEGER, last_price TEXT, last_checked REAL)")
 conn.commit()
 
-# كلمات تدل على التوفر وعدم التوفر
 AVAILABLE = ["متوفر", "available", "in stock"]
 UNAVAILABLE = ["غير متوفر", "unavailable", "out of stock", "نفدت", "مباع"]
 
-# دالة /start للترحيب بالمستخدم
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = update.effective_user.first_name
     welcome_msg = f"""أهلاً وسهلاً {name}!
@@ -47,7 +44,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 """
     await update.message.reply_text(welcome_msg, parse_mode="Markdown")
 
-# دالة /add لإضافة رابط منتج للمتابعة مع فترة محددة
 async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) < 2:
         await update.message.reply_text("الصيغة الصحيحة: /add [الرابط] [الدقائق]")
@@ -64,7 +60,6 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
     await update.message.reply_text(f"تمت إضافة المنتج للمراقبة كل {interval} دقيقة.")
 
-# دالة لفحص حالة التوفر والسعر
 def check_product(url):
     try:
         r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
@@ -88,7 +83,6 @@ def check_product(url):
     except:
         return None, None
 
-# دالة الرد الذكي باستخدام OpenAI للرسائل العامة
 async def ai_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     prompt = update.message.text
     try:
@@ -101,7 +95,6 @@ async def ai_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply = "حدث خطأ أثناء الاتصال بالذكاء الاصطناعي."
     await update.message.reply_text(reply)
 
-# دالة مراقبة الحالة لكل رابط مدرج في قائمة المتابعة
 async def monitor(app):
     while True:
         rows = c.execute("SELECT rowid, user_id, url, interval, last_price, last_checked FROM watchlist").fetchall()
@@ -126,14 +119,13 @@ async def monitor(app):
                         pass
         await asyncio.sleep(30)
 
-# دالة on_startup لتشغيل مهمة المراقبة داخل الحلقة
-async def on_startup(app):
-    asyncio.create_task(monitor(app))
-
-# بناء التطبيق وإضافة المعالجات
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("add", add))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, ai_reply))
 
-app.run_polling(on_startup=on_startup)
+async def main():
+    asyncio.create_task(monitor(app))
+    await app.run_polling()
+
+asyncio.run(main())
