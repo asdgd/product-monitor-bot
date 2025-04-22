@@ -18,10 +18,9 @@ user_data = {}  # user_id: {url, interval, last_status, last_price}
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_state[user_id] = "awaiting_url"
-        await update.message.reply_text("""أهلاً بك في بوت مراقبة المنتجات!
+    await update.message.reply_text("""أهلاً بك في بوت مراقبة المنتجات!
 
 أرسل رابط المنتج اللي تبي أشيك عليه.""")
-
 
 def check_product(url):
     try:
