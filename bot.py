@@ -1,114 +1,75 @@
 
 import os
-import time
-import sqlite3
 import requests
 from bs4 import BeautifulSoup
-from telegram import Update
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
-import asyncio
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "PUT_YOUR_TELEGRAM_BOT_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "PUT_YOUR_OPENAI_API_KEY")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "PUT_YOUR_BOT_TOKEN_HERE")
 
-conn = sqlite3.connect("products.db", check_same_thread=False)
-c = conn.cursor()
-c.execute("CREATE TABLE IF NOT EXISTS watchlist (user_id TEXT, url TEXT, interval INTEGER, last_price TEXT, last_checked REAL)")
-conn.commit()
-
+# كلمات التوفر
 AVAILABLE = ["متوفر", "available", "in stock"]
 UNAVAILABLE = ["غير متوفر", "unavailable", "out of stock", "نفدت", "مباع"]
 
+# المستخدمين في انتظار الرابط
+awaiting_links = {}
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    name = update.effective_user.first_name
-    welcome_msg = f"""أهلاً وسهلاً {name}!
-
-أنا مساعدك الذكي في متابعة المنتجات من أي متجر.
-
-**وش أقدر أسوي لك؟**
-- أتابع أي رابط منتج وترى إذا كان متوفر أو لا
-- أنبهك لو السعر تغيّر
-- أجاوب على أسئلتك باستخدام الذكاء الاصطناعي
-
-**طريقة الاستخدام:**
-أرسل:
-/add [الرابط] [الدقائق]
-مثال:
-/add https://example.com 10
-
-وجرب تكلمني بأي رسالة عادية، وشوف كيف أجاوبك!
-
-بالتوفيق يالغالي!
-"""
-    await update.message.reply_text(welcome_msg, parse_mode="Markdown")
-
-async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if len(context.args) < 2:
-        await update.message.reply_text("الصيغة الصحيحة: /add [الرابط] [الدقائق]")
-        return
-    url = context.args[0]
-    try:
-        interval = int(context.args[1])
-    except:
-        await update.message.reply_text("يرجى تحديد عدد الدقائق بشكل صحيح.")
-        return
-    user_id = str(update.effective_user.id)
-    c.execute("INSERT INTO watchlist (user_id, url, interval, last_price, last_checked) VALUES (?, ?, ?, ?, ?)",
-              (user_id, url, interval, '', 0))
-    conn.commit()
-    await update.message.reply_text(f"تمت إضافة المنتج للمراقبة كل {interval} دقيقة.")
+    user_id = update.effective_user.id
+    awaiting_links[user_id] = True
+    await update.message.reply_text("أهلًا بك! أرسل لي رابط المنتج اللي تبي أشيك عليه.")
 
 def check_product(url):
     try:
-        r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
-        soup = BeautifulSoup(r.text, 'html.parser')
+        response = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+        soup = BeautifulSoup(response.text, 'html.parser')
         text = soup.get_text().lower()
 
-        availability = None
-        for word in AVAILABLE:
-            if word in text:
-                availability = True
-        for word in UNAVAILABLE:
-            if word in text:
-                availability = False
+        available = any(word in text for word in AVAILABLE)
+        unavailable = any(word in text for word in UNAVAILABLE)
+        price = ""
 
-        price = ''
-        for tag in soup.find_all(['span', 'div']):
-            if tag and any(s in tag.text.lower() for s in ['sar', '$', 'ريال', 'usd']):
+        for tag in soup.find_all(["span", "div"]):
+            if any(p in tag.text.lower() for p in ['sar', 'usd', '$', 'ريال']):
                 price = tag.text.strip()
                 break
-        return availability, price
-    except:
-        return None, None
 
-async def monitor(app):
-    while True:
-        rows = c.execute("SELECT rowid, user_id, url, interval, last_price, last_checked FROM watchlist").fetchall()
-        now = time.time()
-        for row in rows:
-            rowid, user_id, url, interval, last_price, last_checked = row
-            if now - last_checked >= interval * 60:
-                available, price = check_product(url)
-                msg = ""
-                if available is True:
-                    msg += f"✅ المنتج متوفر الآن!\n{url}"
-                elif available is False:
-                    msg += f"❌ المنتج غير متوفر حالياً.\n{url}"
-                if price and price != last_price:
-                    msg += f"\n💰 السعر تغير:\nمن: {last_price or 'غير معروف'}\nإلى: {price}"
-                c.execute("UPDATE watchlist SET last_checked = ?, last_price = ? WHERE rowid = ?", (now, price, rowid))
-                conn.commit()
-                if msg:
-                    try:
-                        await app.bot.send_message(chat_id=int(user_id), text=msg)
-                    except:
-                        pass
-        await asyncio.sleep(30)
+        if available:
+            return "متوفر", price
+        elif unavailable:
+            return "غير متوفر", price
+        else:
+            return "غير واضح", price
+    except Exception:
+        return "خطأ أثناء التحقق", ""
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    message = update.message.text.strip()
+
+    if awaiting_links.get(user_id):
+        if message.startswith("http"):
+            status, price = check_product(message)
+            if status == "متوفر":
+                await update.message.reply_text(f"✅ المنتج متوفر!
+السعر: {price or 'غير معروف'}")
+            elif status == "غير متوفر":
+                await update.message.reply_text(f"❌ المنتج غير متوفر حالياً.
+راح أبحث لك عن بدائل...")
+                # Placeholder للبحث لاحقاً
+            elif status == "غير واضح":
+                await update.message.reply_text("ما قدرت أحدد إذا المنتج متوفر أو لا.")
+            else:
+                await update.message.reply_text("حصل خطأ أثناء محاولة قراءة الرابط.")
+            awaiting_links[user_id] = False
+        else:
+            await update.message.reply_text("أرسل رابط صالح يبدأ بـ http")
+    else:
+        await update.message.reply_text("اكتب /start علشان أبدأ معك من جديد.")
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("add", add))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-loop = asyncio.get_event_loop()
-loop.create_task(monitor(app))
-app.run_polling()
+if __name__ == "__main__":
+    app.run_polling()
