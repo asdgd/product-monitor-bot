@@ -75,12 +75,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await asyncio.sleep(1)
 
             if status == "متوفر":
-                await update.message.reply_text(f"""✅ *المنتج متوفر!*
+                await update.message.reply_text(f"""  *المنتج متوفر!*
 
-💵 *السعر:* {price or 'غير معروف'}
+  *السعر:* {price or 'غير معروف'}
 🌐 [رابط المنتج]({message})""", parse_mode="Markdown")
 
-💵 *السعر:* {price or 'غير معروف'}
+  *السعر:* {price or 'غير معروف'}
 🌐 [رابط المنتج]({message})", parse_mode="Markdown")
             elif status == "غير متوفر":
                 await update.message.reply_text(f"""❌ *المنتج غير متوفر حالياً!*
@@ -106,8 +106,8 @@ async def handle_interval_selection(update: Update, context: ContextTypes.DEFAUL
         user_data[user_id]["interval"] = interval
         user_state[user_id] = "monitoring"
 
-        await query.edit_message_text(f"""✅ تم تحديد المدة: كل {interval} دقيقة
-🔁 سأقوم بمتابعة المنتج بشكل مستمر.""")
+        await query.edit_message_text(f"""  تم تحديد المدة: كل {interval} دقيقة
+  سأقوم بمتابعة المنتج بشكل مستمر.""")
     else:
         await query.edit_message_text("تنبيه حدث خطأ، يرجى البدء من جديد بـ /start")
 
@@ -123,14 +123,14 @@ async def monitor_products(app):
 
                 if status != data["last_status"]:
                     notify = True
-                    msg += f"""🔄 *تحديث في حالة المنتج!*
+                    msg += f""" *تحديث في حالة المنتج!*
 من: {data['last_status']}
 إلى: {status}"""
                     data["last_status"] = status
 
                 if price and price != data["last_price"]:
                     notify = True
-                    msg += f"""💰 *السعر تغيّر!*
+                    msg += f""" *السعر تغيّر!*
 من: {data['last_price'] or 'غير معروف'}
 إلى: {price}"""
                     data["last_price"] = price
