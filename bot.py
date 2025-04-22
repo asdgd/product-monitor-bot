@@ -124,8 +124,6 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("add", add))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, ai_reply))
 
-async def main():
-    asyncio.create_task(monitor(app))
-    await app.run_polling()
-
-asyncio.run(main())
+loop = asyncio.get_event_loop()
+loop.create_task(monitor(app))
+app.run_polling()
